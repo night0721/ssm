@@ -31,7 +31,7 @@ get_database_path()
 	if (db[0] == '~') {
 		char *home = getenv("HOME");
 		if (home == NULL) {
-			fprintf(stderr, "HOME not defined\n");
+			fprintf(stderr, "$HOME not defined\n");
 			return NULL;
 		}
 		db_path = malloc((strlen(db) + strlen(home)) * sizeof(char));
@@ -257,21 +257,19 @@ main(int argc, char **argv)
 		/* todo: accept time */
 		add_event(time(NULL) + 60, name, description);
 	} else if (strcmp(argv[1], "edit") == 0) {
-		char *editor = getenv("EDITOR");
-		if (editor == NULL) {
-			fprintf(stderr, "EDITOR not defined\n");
-			return EXIT_FAILURE;
+		const char *e = getenv("EDITOR");
+		if (e == NULL) {
+			e = editor;
+			fprintf(stderr, "$EDITOR not defined, falling back to %s\n", e);
 		}
 		char *db_path = get_database_path();
-		char *cmd = malloc((strlen(editor) + strlen(db_path) + 1) * sizeof(char));
-		if (cmd == NULL) {
-			perror("malloc");
+		if (!db_path) {
+			fprintf(stderr, "Cannot find database path\n");
+			return EXIT_FAILURE;
 		}
-		sprintf(cmd, "%s %s", editor, db_path);
-		/* spawn $EDITOR */
-		system(cmd);
-		free(cmd);
-		free(db_path);
+		execlp(e, e, db_path, NULL);
+		perror("Failed to spawn editor");
+		return EXIT_FAILURE;
 	} else if (strcmp(argv[1], "list") == 0) {
 		/* accept argv[2] as timerange */
 		list_events(events, &num_events);
