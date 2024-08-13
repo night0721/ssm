@@ -31,7 +31,7 @@ get_database_path()
 	if (db[0] == '~') {
 		char *home = getenv("HOME");
 		if (home == NULL) {
-			fprintf(stderr, "HOME not defined");
+			fprintf(stderr, "HOME not defined\n");
 			return NULL;
 		}
 		db_path = malloc((strlen(db) + strlen(home)) * sizeof(char));
@@ -41,27 +41,28 @@ get_database_path()
 	} else {
 		db_path = strdup(db);
 	}
-	if (db_path == NULL) {
-		return NULL;
-	} else {
-		return db_path;
-	}
+	return db_path;
 }
 
-/*
- * Convert timestmap to string
- * format: 0 - YYYY-MM-DD HH:MM:SS
- * format: 1 - HH:MM
- */
+typedef enum {
+	FULL, // YYYY-MM-DD HH:MM:SS
+	HHMM, // HH:MM
+} datefmt;
+
 char *
-convert_timestamp(time_t timestamp, int format)
+convert_timestamp(time_t timestamp, datefmt format)
 {
 	struct tm *time_info = localtime(&timestamp);
 	char *time_buf = malloc(20 * sizeof(char));
-	if (format == 0) {
+	switch(format) {
+	case FULL:
 		strftime(time_buf, 20, "%Y-%m-%d %H:%M:%S", time_info);
-	} else {
+		break;
+	case HHMM:
 		strftime(time_buf, 6, "%H:%M", time_info);
+		break;
+	default:
+		fprintf(stderr, "Invalid datefmt\n");
 	}
 	return time_buf;
 }
@@ -70,35 +71,33 @@ void
 load_events(event **events, int *num_events)
 {
 	char *db_path = get_database_path();
-	if (db_path != NULL) {
-		FILE *file = fopen(db_path, "r");
-		if (!file) {
-			fprintf(stderr, "Cannot open database file\n");
-			exit(EXIT_FAILURE);
-		}
-
-		char line[MAX_LINE_LEN];
-		*num_events = 0;
-		while (fgets(line, sizeof(line), file)) {
-			(*num_events)++;
-		}
-
-		*events = malloc(sizeof(event) * (*num_events));
-		if (*events == NULL) {
-			perror("malloc");
-			exit(EXIT_FAILURE);
-		}
-
-		fseek(file, 0, SEEK_SET);
-		int i = 0;
-		while (fgets(line, sizeof(line), file)) {
-			sscanf(line, "%ld\t%[^\t]\t%[^\n]", &(*events)[i].timestamp, (*events)[i].name, (*events)[i].description);
-			i++;
-		}
-
-		fclose(file);
-		free(db_path);
+	if (db_path == NULL)
+		return;
+	FILE *file = fopen(db_path, "r");
+	if (!file) {
+		fprintf(stderr, "Cannot open database file: %s\n", db_path);
+		exit(EXIT_FAILURE);
 	}
+
+	char line[MAX_LINE_LEN];
+	*num_events = 0;
+	while (fgets(line, sizeof(line), file)) {
+		(*num_events)++;
+	}
+
+	*events = malloc(sizeof(event) * (*num_events));
+	if (*events == NULL) {
+		perror("malloc");
+		exit(EXIT_FAILURE);
+	}
+
+	fseek(file, 0, SEEK_SET);
+	for (int i = 0; fgets(line, sizeof(line), file); i++) {
+		sscanf(line, "%ld\t%[^\t]\t%[^\n]", &(*events)[i].timestamp, (*events)[i].name, (*events)[i].description);
+	}
+
+	fclose(file);
+	free(db_path);
 }
 
 void
@@ -106,18 +105,14 @@ add_event(time_t timestamp, char *name, char *description)
 {
 	char *db_path = get_database_path();
 	FILE *file;
-	if (access(db_path, F_OK) != 0) {
-		file = fopen(db_path, "w");
-	} else {
-		file = fopen(db_path, "a");
+	file = fopen(db_path, access(db_path, F_OK) ? "w" : "a");
+	if (!file) {
+		perror("fopen");
+		exit(EXIT_FAILURE);
 	}
-    if (!file) {
-        perror("fopen");
-        exit(EXIT_FAILURE);
-    }
 
-    fprintf(file, "%ld\t%s\t%s\n", timestamp, name, description);
-    fclose(file);
+	fprintf(file, "%ld\t%s\t%s\n", timestamp, name, description);
+	fclose(file);
 	free(db_path);
 	char *time_buf = convert_timestamp(timestamp, 0);
 	printf("Added \"%s\" with description \"%s\" at \"%s\"\n", name, description, time_buf);
@@ -165,7 +160,7 @@ list_events(event *events, int *num_events)
 {
 	load_events(&events, num_events);
 	for (int i = 0; i < *num_events; i++) {
-		printf("Timestamp: %d\nName: %s\nDescription: %s\n\n", events[i].timestamp, events[i].name, events[i].description);
+		printf("Timestamp: %ld\nName: %s\nDescription: %s\n\n", events[i].timestamp, events[i].name, events[i].description);
 	}
 	free(events);
 }
@@ -225,19 +220,19 @@ watch_file(event *events, int *num_events)
 
 }
 
-static void
+static _Noreturn void
 usage(int code)
 {
 	fprintf(code ? stderr : stdout,
-			"Simple Scheduler Manager %s\n\n"
+			"Simple Scheduler Manager " VERSION "\n\n"
 			"Usage: ssm <command>\n\n"
-			"	help				Show this help message\n"
+			"	help					Show this help message\n"
 			"	sched <time> <title> [description]	Schedule an event\n"
 			"	edit					Edit schedule with $EDITOR\n"
 			"	list <timerange>			List all upcoming events\n"
 			"	search					Search for events\n"
 			"	run					Spawn notifier daemon\n"
-			, VERSION);
+			);
 	exit(code);
 }
 
@@ -264,17 +259,18 @@ main(int argc, char **argv)
 	} else if (strcmp(argv[1], "edit") == 0) {
 		char *editor = getenv("EDITOR");
 		if (editor == NULL) {
-			fprintf(stderr, "EDITOR not defined");
+			fprintf(stderr, "EDITOR not defined\n");
+			return EXIT_FAILURE;
 		}
 		char *db_path = get_database_path();
-        char *cmd = malloc((strlen(editor) + strlen(db_path) + 1) * sizeof(char));
+		char *cmd = malloc((strlen(editor) + strlen(db_path) + 1) * sizeof(char));
 		if (cmd == NULL) {
 			perror("malloc");
 		}
-        sprintf(cmd, "%s %s", editor, db_path);
+		sprintf(cmd, "%s %s", editor, db_path);
 		/* spawn $EDITOR */
-        system(cmd);
-        free(cmd);
+		system(cmd);
+		free(cmd);
 		free(db_path);
 	} else if (strcmp(argv[1], "list") == 0) {
 		/* accept argv[2] as timerange */
@@ -284,9 +280,10 @@ main(int argc, char **argv)
 	} else if (strcmp(argv[1], "run") == 0) {
 		watch_file(events, &num_events);
 	} else if (strcmp(argv[1], "help") == 0) {
-		usage(1);
-	}else {
+		usage(0);
+	} else {
+		fprintf(stderr, "Unknown command: %s\n", argv[1]);
 		usage(1);
 	}
-	return EXIT_FAILURE;
+	return EXIT_SUCCESS;
 }
