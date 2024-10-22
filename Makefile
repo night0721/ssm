@@ -1,7 +1,6 @@
 .POSIX:
 .SUFFIXES:
 
-CC = cc
 VERSION = 1.0
 TARGET = ssm 
 MANPAGE = $(TARGET).1
@@ -9,9 +8,9 @@ PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 MANDIR = $(PREFIX)/share/man/man1
 
-# Flags
-LDFLAGS = $(shell pkg-config --libs libnotify)
-CFLAGS = -O3 -march=native -mtune=native -pipe -s -std=c99 -flto -pedantic -Wall -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=600 $(shell pkg-config --cflags libnotify)
+LDFLAGS != pkg-config --libs libnotify
+INCFLAGS != pkg-config --cflags libnotify
+CFLAGS = -O3 -march=native -mtune=native -pipe -s -std=c99 -flto -pedantic -Wall $(INCFLAGS)
 
 SRC = ssm.c
 
@@ -34,11 +33,11 @@ install: $(TARGET)
 	chmod 644 $(DESTDIR)$(MANDIR)/$(MANPAGE)
 
 uninstall:
-	$(RM) $(DESTDIR)$(BINDIR)/$(TARGET)
-	$(RM) $(DESTDIR)$(MANDIR)/$(MANPAGE)
+	rm $(DESTDIR)$(BINDIR)/$(TARGET)
+	rm $(DESTDIR)$(MANDIR)/$(MANPAGE)
 
 clean:
-	$(RM) $(TARGET)
+	rm $(TARGET)
 
 all: $(TARGET)
 
