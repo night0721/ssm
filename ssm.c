@@ -24,7 +24,7 @@ typedef struct {
 } event;
 
 char *
-get_database_path()
+get_database_path(void)
 {
 	char *db = DATABASE_PATH;
 	char *db_path;

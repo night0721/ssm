@@ -8,7 +8,7 @@ BINDIR = $(PREFIX)/bin
 
 LDFLAGS != pkg-config --libs libnotify
 INCFLAGS != pkg-config --cflags libnotify
-CFLAGS = -O3 -march=native -mtune=native -pipe -s -std=c99 -flto -pedantic -Wall $(INCFLAGS)
+CFLAGS = -Os -march=native -mtune=native -pipe -s -std=c99 -flto -pedantic -Wall $(INCFLAGS)
 
 SRC = ssm.c
 
