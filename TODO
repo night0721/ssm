@@ -1,0 +1,5 @@
+Show "today events: " then a list of events for the day
+Show "upcoming events: " then a list of events for the next 7 days in format of "in one day... in two day"
+notify send when any reminder is close to occurence
+Represent recurring events using recursion for generating occurrences
+Sort events/tasks based on start time, end time, priority, etc
