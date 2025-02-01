@@ -1,25 +1,24 @@
 .POSIX:
-.SUFFIXES:
 
 VERSION = 1.0
 TARGET = ssm 
 PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 
-LDFLAGS != pkg-config --libs libnotify
-INCFLAGS != pkg-config --cflags libnotify
-CFLAGS = -Os -march=native -mtune=native -pipe -s -std=c99 -flto -pedantic -Wall $(INCFLAGS)
+CFLAGS += -std=c99 -pedantic -Wall -D_POSIX_C_SOURCE=200809L
 
 SRC = ssm.c
+OBJS = $(SRC:.c=.o)
 
-$(TARGET): $(SRC)
-	$(CC) $(SRC) -o $@ $(CFLAGS) $(LDFLAGS)
+.c.o:
+	$(CC) -o $@ $(CFLAGS) -c $<
 
+$(TARGET): $(OBJS)
+	$(CC) -o $@ $(OBJS)
 dist:
 	mkdir -p $(TARGET)-$(VERSION)
 	cp -R README.md $(TARGET) $(TARGET)-$(VERSION)
-	tar -cf $(TARGET)-$(VERSION).tar $(TARGET)-$(VERSION)
-	gzip $(TARGET)-$(VERSION).tar
+	tar -czf $(TARGET)-$(VERSION).tar.gz $(TARGET)-$(VERSION)
 	rm -rf $(TARGET)-$(VERSION)
 
 install: $(TARGET)
@@ -28,10 +27,10 @@ install: $(TARGET)
 	chmod 755 $(DESTDIR)$(BINDIR)/$(TARGET)
 
 uninstall:
-	rm $(DESTDIR)$(BINDIR)/$(TARGET)
+	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
 
 clean:
-	rm $(TARGET)
+	rm -f $(TARGET) *.o
 
 all: $(TARGET)
 
