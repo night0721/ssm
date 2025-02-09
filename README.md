@@ -1,5 +1,5 @@
 # ssm 
-Simple Schedule Manager(ssm) is a highly scriptable scheduler.
+Simple Schedule Manager(ssm) is a highly scriptable scheduler. It supports recurring events and support daily, weekly, monthly events.
 
 # Usage
 ```
@@ -7,15 +7,14 @@ Simple Scheduler Manager 1.0.0
 
 Usage: ssm <command>
 
-	help				Show this help message
-	sched <time> <title> [description]	Schedule an event
-	edit					Edit schedule with $EDITOR
-	list <timerange>			List all upcoming events
-	search					Search for events
-	run					Spawn notifier daemon
+	help						Show this help message
+	sched <time> <title> <description> [options]	Schedule an event
+	edit						Edit schedule with $EDITOR
+	list						List all upcoming events
+	run						Spawn notifier daemon
 ```
 # Dependencies
-- libnotify
+None
 
 # Building
 You will need to run these with elevated privilages.

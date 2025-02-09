@@ -5,7 +5,7 @@ TARGET = ssm
 PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 
-CFLAGS += -std=c99 -pedantic -Wall -D_POSIX_C_SOURCE=200809L
+CFLAGS += -std=c99 -pedantic -Wall -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE
 
 SRC = ssm.c
 OBJS = $(SRC:.c=.o)
