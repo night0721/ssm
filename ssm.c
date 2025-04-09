@@ -446,7 +446,7 @@ parsed_time parse_time_string(const char *time_str)
 	return parse_absolute_time(time_str);
 }
 
-static _Noreturn void usage(int code)
+static void usage(int code)
 {
 	fprintf(code ? stderr : stdout,
 			"Simple Scheduler Manager " VERSION "\n\n"
